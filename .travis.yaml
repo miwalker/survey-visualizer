@@ -1,0 +1,36 @@
+sudo: required
+language: python
+python: 
+  - "3.8"
+dist: bionic
+
+branches:
+  only:
+    - master
+
+
+env:
+  - IBM_CLOUD_REGION="us-south"
+
+install:
+  - sudo apt update &> /dev/null
+  - sudo apt install nodejs &> /dev/null
+  - sudo apt upgrade nodejs &> /dev/null
+  - node -v &> /dev/null
+  - curl -fsSL https://clis.cloud.ibm.com/install/linux | sh 
+  - ibmcloud --version
+  - ibmcloud cf install
+  - ibmcloud login --apikey ${IBM_CLOUD_APIKEY} -r ${IBM_CLOUD_REGION}
+  - export NODE_OPTIONS=--max_old_space_size=8192
+  - sudo apt install python3-pip
+  - sudo apt-get install python3-setuptools &> /dev/null
+
+script:
+  - chmod +x "run.sh"
+  - sh ./run.sh &> /dev/null
+  - python3 src/compiler/compile.py --file src/config.yaml
+  - ibmcloud target -s ${IBM_CLOUD_FRONTEND_SPACE} -o ${IBM_CLOUD_ORG}
+  - yarn install --ignore-engines
+  - CI=false yarn build
+  - ibmcloud cf push
+  
