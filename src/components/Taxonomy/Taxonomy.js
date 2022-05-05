@@ -23,6 +23,8 @@ import {
   LogoGithub32,
   Add16,
   Subtract16,
+  CaretRight32,
+  CaretLeft32,
 } from '@carbon/icons-react';
 import {
   Modal,
@@ -40,11 +42,15 @@ import {
   Tab,
   Slider,
   Toggle,
+  AccordionItem,
+  Accordion,
 } from 'carbon-components-react';
 
 let config = require('../../config.json');
 let view_config = config.views.filter(view => view.name === 'Taxonomy')[0];
 let data = require('../../compiler/data/Taxonomy.json');
+
+let fancy_chart_default_level = 2;
 
 class Taxonomy extends React.Component {
   constructor(props) {
@@ -55,8 +61,7 @@ class Taxonomy extends React.Component {
       active_tab: view_config['default_tab'],
       taxonomy_data: [],
       paper_data: [],
-      taxonomy_data_treeform: [],
-      taxonomy_data_circleform: [],
+      taxonomy_data_fancy: [],
       modal: false,
       config: {
         nodeHeight: 50,
@@ -67,9 +72,9 @@ class Taxonomy extends React.Component {
         vertical_offset: 0,
         plot_options: {
           title: '',
-
           draw_treemap: true,
           draw_circlemap: true,
+          level: fancy_chart_default_level,
           canvasZoom: {
             enabled: true,
           },
@@ -138,7 +143,7 @@ class Taxonomy extends React.Component {
           years: this.props.years,
         },
         () => {
-          this.tranformData2Tree(2, 3);
+          this.tranformData2Tree();
         }
       );
   }
@@ -152,32 +157,43 @@ class Taxonomy extends React.Component {
       tab => tab.tab_name === tab_name
     )[0];
 
+    const new_taxonomoy_data = new_paper_data.taxonomy.map(
+      (taxonomy_layer, taxonomy_level) => {
+        var new_taxonomoy_layer = [];
+
+        taxonomy_layer.forEach(node => {
+          if (!getChildren(node, new_paper_data.taxonomy).length)
+            node.expanded = false;
+
+          new_taxonomoy_layer.push(node);
+        });
+
+        return new_taxonomoy_layer;
+      }
+    );
+
+    const fancy_chart_level = tab_config.fancy_chart_default_level
+      ? tab_config.fancy_chart_default_level
+      : Math.min(fancy_chart_default_level, new_taxonomoy_data.length - 1);
+
     this.setState(
       {
         ...this.state,
         active_tab: tab_name,
-        taxonomy_data: new_paper_data.taxonomy.map(
-          (taxonomy_layer, taxonomy_level) => {
-            var new_taxonomoy_layer = [];
-
-            taxonomy_layer.forEach(node => {
-              if (!getChildren(node, new_paper_data.taxonomy).length)
-                node.expanded = false;
-
-              new_taxonomoy_layer.push(node);
-            });
-
-            return new_taxonomoy_layer;
-          }
-        ),
+        taxonomy_data: new_taxonomoy_data,
         paper_data: new_paper_data.data,
         config: {
           ...this.state.config,
           vertical_offset: tab_config.taxonomy.columns.start,
+          plot_options: {
+            ...this.state.config.plot_options,
+            level: fancy_chart_level,
+          },
         },
       },
       () => {
         this.updateSelectedTab();
+        this.tranformData2Tree();
       }
     );
   }
@@ -266,13 +282,10 @@ class Taxonomy extends React.Component {
     );
   };
 
-  tranformData2Tree = (start, stop) => {
+  tranformData2Tree = e => {
     var draw_circlemap = true;
-
-    if (this.state.taxonomy_data.length < stop) {
-      start--;
-      stop--;
-    }
+    var start = this.state.config.plot_options.level;
+    var stop = this.state.config.plot_options.level + 1;
 
     const temp_taxonomy_data = this.state.taxonomy_data.slice(start - 1, stop);
     const new_taxonomoy_data = temp_taxonomy_data[0].map((item, id) => {
@@ -293,45 +306,36 @@ class Taxonomy extends React.Component {
         children: children,
       };
 
-      if (!children.length) {
-        const num_papers = this.getPapersWithTag(item).length;
-        draw_circlemap = draw_circlemap && Boolean(num_papers);
-
-        new_node['showLabel'] = true;
-        new_node['value'] = num_papers ? num_papers : 0;
-      }
-
       return new_node;
     });
 
-    if (draw_circlemap) {
-      this.setState({
+    this.setState(
+      {
         ...this.state,
-        taxonomy_data_treeform: new_taxonomoy_data,
-        taxonomy_data_circleform: new_taxonomoy_data,
         config: {
           ...this.state.config,
-          slider: 12,
           plot_options: {
             ...this.state.config.plot_options,
-            draw_circlemap: draw_circlemap,
+            draw_treemap: false,
+            draw_circlemap: false,
           },
         },
-      });
-    } else {
-      this.setState({
-        ...this.state,
-        taxonomy_data_treeform: new_taxonomoy_data,
-        config: {
-          ...this.state.config,
-          slider: 16,
-          plot_options: {
-            ...this.state.config.plot_options,
-            draw_circlemap: draw_circlemap,
+      },
+      () => {
+        this.setState({
+          ...this.state,
+          taxonomy_data_fancy: new_taxonomoy_data,
+          config: {
+            ...this.state.config,
+            plot_options: {
+              ...this.state.config.plot_options,
+              draw_treemap: true,
+              draw_circlemap: true,
+            },
           },
-        },
-      });
-    }
+        });
+      }
+    );
   };
 
   getTimeline(e) {
@@ -415,6 +419,31 @@ class Taxonomy extends React.Component {
     } else {
       return Add16;
     }
+  };
+
+  onClimb = e => {
+    var new_level = this.state.config.plot_options.level;
+    var delta = e.currentTarget.name === 'climb-up' ? 1 : -1;
+
+    new_level = new_level + delta;
+    new_level = Math.min(this.state.taxonomy_data.length - 1, new_level);
+    new_level = Math.max(1, new_level);
+
+    this.setState(
+      {
+        ...this.state,
+        config: {
+          ...this.state.config,
+          plot_options: {
+            ...this.state.config.plot_options,
+            level: new_level,
+          },
+        },
+      },
+      () => {
+        this.tranformData2Tree();
+      }
+    );
   };
 
   render() {
@@ -619,27 +648,27 @@ class Taxonomy extends React.Component {
         }
       });
 
-    return (
-      <div>
-        <Tabs
-          scrollIntoView={false}
-          selected={view_config.tabs
-            .map(tab => view_config.default_tab === tab.tab_name)
-            .indexOf(true)}>
-          {view_config.tabs.map((tab, id) => (
-            <Tab
-              key={id}
-              id={tab.tab_name}
-              label={tab.tab_name}
-              disabled={tab.disabled}
-              onClick={this.switchTabs.bind(this, tab.tab_name)}>
-              <div className="tab-content">
-                <h6>{tab.title_text}</h6>
-                <br />
-                {tab.tab_name === this.state.active_tab && (
-                  <div>
-                    {tab.fancy_chart && (
-                      <div className="bx--container">
+    const taxonomy_area = view_config.tabs.map((tab, id) => (
+      <div className="tab-content">
+        {tab.title_text && (
+          <>
+            <h6>{tab.title_text}</h6>
+            <br />
+          </>
+        )}
+        {tab.tab_name === this.state.active_tab && (
+          <div>
+            <Accordion align="start">
+              {tab.fancy_chart && (
+                <AccordionItem
+                  title="Treemap View"
+                  className="full-accordion"
+                  open>
+                  <div className="bx--container">
+                    <div className="bx--row">
+                      <div style={{ borderRight: '1pt solid silver' }}>
+                        <h6>Relative Zoom</h6>
+
                         <Slider
                           hideTextInput
                           id="slider"
@@ -649,178 +678,228 @@ class Taxonomy extends React.Component {
                           onChange={this.handleSliderChange.bind(this)}
                           value={this.state.config.slider}
                         />
-
-                        <div className="bx--row">
-                          <div
-                            className={
-                              'bx--col-lg-' + this.state.config.slider
-                            }>
-                            {this.state.config.plot_options.draw_treemap && (
-                              <TreemapChart
-                                data={this.state.taxonomy_data_treeform}
-                                options={
-                                  this.state.config.plot_options
-                                }></TreemapChart>
-                            )}
-                          </div>
-
-                          <div
-                            className={
-                              'bx--col-lg-' +
-                              (16 - this.state.config.slider).toString()
-                            }>
-                            {this.state.config.plot_options.draw_circlemap && (
-                              <CirclePackChart
-                                data={this.state.taxonomy_data_circleform}
-                                options={this.state.config.plot_options}>
-                                >
-                              </CirclePackChart>
-                            )}
-                          </div>
-                        </div>
-
-                        <br />
-                        <hr />
                       </div>
-                    )}
 
-                    <div ref={this.ref}>
-                      <svg height="10000px" width="100%">
-                        {buttons}
-                        {edges}
-                        {nodes}
-                      </svg>
+                      <div style={{ marginLeft: '10px' }}>
+                        <div>
+                          <h6 style={{ marginBottom: '5px' }}>
+                            Climb Hierarchy
+                          </h6>
+
+                          <Button
+                            onClick={this.onClimb.bind(this)}
+                            name="climb-down"
+                            kind="ghost"
+                            className="navigation-buttons"
+                            renderIcon={CaretLeft32}
+                            iconDescription="Navigate Up"
+                            size="sm"
+                            disabled={
+                              this.state.config.plot_options.level === 1
+                            }
+                            hasIconOnly
+                          />
+                          <Button
+                            onClick={this.onClimb.bind(this)}
+                            name="climb-up"
+                            kind="ghost"
+                            className="navigation-buttons"
+                            renderIcon={CaretRight32}
+                            iconDescription="Navigate Down"
+                            size="sm"
+                            disabled={
+                              this.state.config.plot_options.level ===
+                              this.state.taxonomy_data.length - 1
+                            }
+                            hasIconOnly
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    <Modal
-                      modalHeading={this.renderParents(this.state.modal)}
-                      modalLabel="Taxonomy View of VAM-HRI Interation Design Elements"
-                      passiveModal
-                      hasScrollingContent
-                      open={Boolean(this.state.modal)}
-                      onRequestClose={this.onClickModalClose.bind(this)}
-                      size="lg"
-                      aria-label=""
-                      style={{ height: '100%' }}>
-                      <div className="bx--container">
-                        <div className="bx--row">
-                          <div className="bx--col-lg-10">
-                            {this.state.modal && (
-                              <>
-                                <h4>
-                                  <span style={{ color: 'gray' }}>
-                                    Category:{' '}
-                                  </span>{' '}
-                                  {this.state.modal.name}
-                                </h4>
-                                <hr />
-                                {this.state.modal.abstract && (
-                                  <>
-                                    <p>{this.state.modal.abstract}</p>
-                                    <br />
-                                    <br />
-                                  </>
-                                )}
-                              </>
-                            )}
-
-                            {getChildren(
-                              this.state.modal,
-                              this.state.taxonomy_data
-                            ).length > 0 && (
-                              <>
-                                Children:{' '}
-                                {getChildren(
-                                  this.state.modal,
-                                  this.state.taxonomy_data
-                                ).map((child, i) => (
-                                  <span key={i}>
-                                    {i > 0 && ' | '}
-                                    <Link
-                                      onClick={this.onClickModalNode.bind(
-                                        this,
-                                        child
-                                      )}>
-                                      {child.name}
-                                    </Link>
-                                  </span>
-                                ))}
-                              </>
-                            )}
-
-                            <br />
-                            <br />
-
-                            <Button
-                              style={{ marginRight: '10px' }}
-                              kind="primary"
-                              size="field"
-                              renderIcon={Document32}
-                              iconDescription="Add"
-                              href={config['metadata']['primary_link']}
-                              target="_blank">
-                              Read More
-                            </Button>
-
-                            <Button
-                              kind="tertiary"
-                              renderIcon={LogoGithub32}
-                              size="field"
-                              href={
-                                config['metadata']['link_to_code'] +
-                                '#how-to-contribute'
-                              }
-                              target="_blank">
-                              Contribute
-                            </Button>
-                            <br />
-                            <br />
-
-                            <StructuredListWrapper>
-                              <StructuredListHead>
-                                <StructuredListRow>
-                                  <StructuredListCell head>
-                                    Papers in this Category
-                                  </StructuredListCell>
-                                </StructuredListRow>
-                              </StructuredListHead>
-                              <StructuredListBody>
-                                {this.state.paper_data
-                                  .filter(
-                                    paper =>
-                                      paper['tags']
-                                        .map(e => hashID(e))
-                                        .indexOf(hashID(this.state.modal)) > -1
-                                  )
-                                  .map(item => (
-                                    <StructuredListRow key={item.UID}>
-                                      <StructuredListCell>
-                                        <PaperInner paper={item} />
-                                      </StructuredListCell>
-                                      <StructuredListCell></StructuredListCell>
-                                    </StructuredListRow>
-                                  ))}
-                              </StructuredListBody>
-                            </StructuredListWrapper>
-                          </div>
-                          <div className="bx--col-lg-6">
-                            {this.state.modal && (
-                              <SimpleBarChart
-                                data={this.getTimeline()}
-                                options={
-                                  this.state.config.modal_timeline
-                                }></SimpleBarChart>
-                            )}
-                          </div>
-                        </div>
+                    <div className="bx--row">
+                      <div className={'bx--col-lg-' + this.state.config.slider}>
+                        {this.state.config.plot_options.draw_treemap && (
+                          <TreemapChart
+                            data={this.state.taxonomy_data_fancy}
+                            options={
+                              this.state.config.plot_options
+                            }></TreemapChart>
+                        )}
                       </div>
-                    </Modal>
+
+                      <div
+                        className={
+                          'bx--col-lg-' +
+                          (16 - this.state.config.slider).toString()
+                        }>
+                        {this.state.config.plot_options.draw_circlemap && (
+                          <CirclePackChart
+                            data={this.state.taxonomy_data_fancy}
+                            options={this.state.config.plot_options}>
+                            >
+                          </CirclePackChart>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )}
+                </AccordionItem>
+              )}
+
+              <AccordionItem
+                title="Hierarchy View"
+                className="full-accordion"
+                open>
+                <div ref={this.ref}>
+                  <svg height="10000px" width="100%">
+                    {buttons}
+                    {edges}
+                    {nodes}
+                  </svg>
+                </div>
+              </AccordionItem>
+            </Accordion>
+
+            <Modal
+              modalHeading={this.renderParents(this.state.modal)}
+              modalLabel="Taxonomy View of VAM-HRI Interation Design Elements"
+              passiveModal
+              hasScrollingContent
+              open={Boolean(this.state.modal)}
+              onRequestClose={this.onClickModalClose.bind(this)}
+              size="lg"
+              aria-label=""
+              style={{ height: '100%' }}>
+              <div className="bx--container">
+                <div className="bx--row">
+                  <div className="bx--col-lg-10">
+                    {this.state.modal && (
+                      <>
+                        <h4>
+                          <span style={{ color: 'gray' }}>Category: </span>{' '}
+                          {this.state.modal.name}
+                        </h4>
+                        <hr />
+                        {this.state.modal.abstract && (
+                          <>
+                            <p>{this.state.modal.abstract}</p>
+                            <br />
+                            <br />
+                          </>
+                        )}
+                      </>
+                    )}
+
+                    {getChildren(this.state.modal, this.state.taxonomy_data)
+                      .length > 0 && (
+                      <>
+                        Children:{' '}
+                        {getChildren(
+                          this.state.modal,
+                          this.state.taxonomy_data
+                        ).map((child, i) => (
+                          <span key={i}>
+                            {i > 0 && ' | '}
+                            <Link
+                              onClick={this.onClickModalNode.bind(this, child)}>
+                              {child.name}
+                            </Link>
+                          </span>
+                        ))}
+                      </>
+                    )}
+
+                    <br />
+                    <br />
+
+                    <Button
+                      style={{ marginRight: '10px' }}
+                      kind="primary"
+                      size="field"
+                      renderIcon={Document32}
+                      iconDescription="Add"
+                      href={config['metadata']['primary_link']}
+                      target="_blank">
+                      Read More
+                    </Button>
+
+                    <Button
+                      kind="tertiary"
+                      renderIcon={LogoGithub32}
+                      size="field"
+                      href={config['metadata']['link_to_contribute']}
+                      target="_blank">
+                      Contribute
+                    </Button>
+                    <br />
+                    <br />
+
+                    <StructuredListWrapper>
+                      <StructuredListHead>
+                        <StructuredListRow>
+                          <StructuredListCell head>
+                            Papers in this Category
+                          </StructuredListCell>
+                        </StructuredListRow>
+                      </StructuredListHead>
+                      <StructuredListBody>
+                        {this.state.paper_data
+                          .filter(
+                            paper =>
+                              paper['tags']
+                                .map(e => hashID(e))
+                                .indexOf(hashID(this.state.modal)) > -1
+                          )
+                          .map(item => (
+                            <StructuredListRow key={item.UID}>
+                              <StructuredListCell>
+                                <PaperInner paper={item} />
+                              </StructuredListCell>
+                              <StructuredListCell></StructuredListCell>
+                            </StructuredListRow>
+                          ))}
+                      </StructuredListBody>
+                    </StructuredListWrapper>
+                  </div>
+                  <div className="bx--col-lg-6">
+                    {this.state.modal && (
+                      <SimpleBarChart
+                        data={this.getTimeline()}
+                        options={
+                          this.state.config.modal_timeline
+                        }></SimpleBarChart>
+                    )}
+                  </div>
+                </div>
               </div>
-            </Tab>
-          ))}
-        </Tabs>
+            </Modal>
+          </div>
+        )}
+      </div>
+    ));
+
+    return (
+      <div>
+        {view_config.tabs.length === 1 && <>{taxonomy_area[0]}</>}
+
+        {view_config.tabs.length > 1 && (
+          <Tabs
+            scrollIntoView={false}
+            selected={view_config.tabs
+              .map(tab => view_config.default_tab === tab.tab_name)
+              .indexOf(true)}>
+            {view_config.tabs.map((tab, id) => (
+              <Tab
+                key={id}
+                id={tab.tab_name}
+                label={tab.tab_name}
+                disabled={tab.disabled}
+                onClick={this.switchTabs.bind(this, tab.tab_name)}>
+                {taxonomy_area[id]}
+              </Tab>
+            ))}
+          </Tabs>
+        )}
       </div>
     );
   }

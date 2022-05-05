@@ -98,7 +98,9 @@ const PaperInner = props => (
     {props.paper.year}){' '}
     {props.paper.link && (
       <Link className="hover-cursor" href={props.paper.link} target="_blank">
-        <Download16 />
+        <span className="download-icon">
+          <Download16 />
+        </span>
       </Link>
     )}
   </p>
@@ -214,7 +216,7 @@ class Simulate extends React.Component {
       <>
         <div className="bx--col-lg-6">
           <Slider
-            labelText="VAM-HRI through the years"
+            labelText={config['metadata']['acronym'] + ' through the years'}
             hideTextInput
             onChange={this.handleSimulate.bind(this)}
             min={this.state.years.min_val}

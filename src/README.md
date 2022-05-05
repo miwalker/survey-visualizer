@@ -16,6 +16,8 @@ This part is pretty self-explantory
 
 ```yaml
 metadata:
+  acronym: VAMHRI
+  name: VAM-HRI
   title_text:
     'Virtual, Augmented, and Mixed Reality for Human-Robot Interaction:
     A Survey and Virtual Design Element Taxonomy'
@@ -25,9 +27,12 @@ metadata:
     Taxonomy}}, \n author={Michael Walker and Thao Phung and \n\t Tathagata Chakraborti
     and Tom \n\t Williams and Daniel Szafir}, \n booktitle={arXiv:2202.11249}, \n
     year={2022}}"
+  link_to_contribute: https://github.com/miwalker/survey-visualizer/issues/new/choose
   link_to_code: https://github.com/TathagataChakraborti/survey-visualizer
   primary_link: https://arxiv.org/abs/2202.11249
-  secondary_link: https://ieeexplore.ieee.org/document/8673071
+  secondary_links:
+    - name: The Reality-Virtuality Interaction Cube
+      link: https://ieeexplore.ieee.org/document/8673071
   info_tile: true
   info_text: Learn more about the VAM-HRI Workshop Series at HRI 2018-present
   info_link:
@@ -37,9 +42,17 @@ metadata:
       text: How it's going
 ```
 
-This appears as follows on the left-hand side [example](http://ibm.biz/vam-hri) as a gateway to the survey resources for the particular deployment:
+The `name` field appears as the title of the webpage (name of the tab on your browser). The rest of these fields
+appear as follows on the left-hand side [[example](http://ibm.biz/vam-hri)] as a gateway to the survey resources for the particular deployment:
 
 <img width="100%" alt="image" src="https://user-images.githubusercontent.com/4764242/156827296-eb24127f-d008-4a57-b60f-035f4c009647.png">
+
+The primary link should point to the survey paper this deployment is built upon. You can have more than one secondary link,
+pointing to other papers, or links, that may be of interest.
+
+Note that the `link to contribute` field should lead directly to wherever the author of the survey want people to go to make
+further contributions or get in touch. In this example, it's a [fork](https://github.com/miwalker/survey-visualizer) of this library which hosts
+a [deployment](http://ibm.biz/vam-hri) for [this](https://arxiv.org/abs/2202.11249) paper.
 
 ## Views
 
@@ -78,9 +91,11 @@ tabs:
     disabled: false
     fancy_chart: false
     input_file:
-      filename: 'Cubed-Thao.xlsx'
+      filename: data/slug.xlsx
+      relative: true
       active_worksheet: Cubed - Thao
     papers_list:
+      shuffle_list: true
       key_map:
         title: 3
         abstract:
@@ -107,16 +122,24 @@ tabs:
         stop: 146
 ```
 
+For each tab in the Taxonomy view, you can provide a link to the spreadsheet (and corresponding active sheet) to read from.
+The path to the file can be either marked relative to the directory you are running the compiler from i.e. this/path/compiler/...
+or can be an absolute path.
+
 The rows and columns (for either of the taxonomy area or the paper list) indicate the start and end of where to read from
 in the spreadsheet, as well as rows / columns to ignore if required.
 For example, we are asking here to read the "Taxonomy" hierarchy from rows 1-6 (but ignore rows 5 and 6)
 and columns 69 to 146, and the rows 7-184 (excluding 141 and 151) for the list of papers.
 The `key_map` entry indicates where (columns) the paper metadata is documented in the spreadsheet (e.g. the title is in column 3).
 
+The `shuffle_list` key, if _True_, will make the paper list appear in randomized order. If disabled, the papers on the visualizer
+appear in the order they are given in the source spreadsheet.
+
 **Fancy Charts**
 
-In case your taxonomy is _only 2 levels deep_, you can also enable other views into it, such as
-using [tree maps](https://www.carbondesignsystem.com/data-visualization/complex-charts/#tree-maps) and [circle packs](https://www.carbondesignsystem.com/data-visualization/complex-charts/#circle-packs).
+You can also enable other views into your taxonomy, such as
+using [tree maps](https://www.carbondesignsystem.com/data-visualization/complex-charts/#tree-maps) and [circle packs](https://www.carbondesignsystem.com/data-visualization/complex-charts/#circle-packs). The `fancy_chart_default_level` key dictates at what level of the taxonomy (1 being the highest)
+the chart is initialized.
 
 ```yaml
 - tab_name: Hardware
@@ -137,18 +160,14 @@ single class and everything should work fine. Remember to disable the Taxonomy v
 ### Affinity
 
 The affinity tab is meant to provide a view of the papers in the spreadsheet in the space of document similarity.
-Here "document" equates to the paper metadata provided in the spreadsheet. Adjust the scaling factors to ensure that the
-embeddings look just right when the tab loads (the user can zoom and pan later as well).
-
-This view is inspired from the [Miniconf](https://github.com/Mini-Conf/Mini-Conf/tree/master/scripts) repository.
+Here "document" equates to the paper metadata provided in the spreadsheet. This view is inspired from
+the [Miniconf](https://github.com/Mini-Conf/Mini-Conf/tree/master/scripts) repository.
 
 > The tags here (highlighted in red) are derived from the default taxonomy you picked in the previous step.
 
 ```
 - name: Affinity
   disabled: false
-  scaleX: 40
-  scaleY: 15
 ```
 
 <img width="100%" alt="image" src="https://user-images.githubusercontent.com/4764242/156833144-f34bf89b-3a47-4655-b214-ec79756858f6.png">
@@ -157,6 +176,7 @@ This view is inspired from the [Miniconf](https://github.com/Mini-Conf/Mini-Conf
 
 The final view, shows a citations network between papers included in the survey. This is extracted automatically from the PDFs of the papers
 and is a bit noisy due to varying PDF formats. The extraction is done as a best guess basis (favoring low false negatives with a bit of high false positive).
+You should specify the path (either relative to the compiler script, or absolute) to the PDFs in the `files_directory` field.
 
 You can change the `match_threshold` to make the best guess more strict. A `0.25` value means that, for all the bits of strings found in the paper
 in the "References" sections, a paper title in the known paper list has to be changed **at most** 25% of itself in order to match, to be considered a potential
@@ -164,6 +184,9 @@ reference (with the lowest match below that threshold taken as the matched refer
 
 ```yaml
 - name: Network
+  files_directory:
+    location: data/pdfs
+    relative: true
   match_threshold: 0.25
   disabled: false
 ```
