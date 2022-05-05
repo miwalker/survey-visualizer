@@ -1,0 +1,121 @@
+---
+metadata:
+  title_text: 'Virtual, Augmented, and Mixed Reality for Human-Robot Interaction:
+    A Survey and Virtual Design Element Taxonomy'
+  citation_text: "@inproceedings{vam-hri, \n title={{Virtual, Augmented, and Mixed
+    Reality\n\t for Human-Robot Interaction: A Survey\n\t and Virtual Design Element
+    Taxonomy}}, \n author={Michael Walker and Thao Phung and \n\t Tathagata Chakraborti
+    and Tom \n\t Williams and Daniel Szafir}, \n booktitle={arXiv:2202.11249}, \n
+    year={2022}}"
+  link_to_code: https://github.com/TathagataChakraborti/survey-visualizer
+  primary_link: https://arxiv.org/abs/2202.11249
+  secondary_link: https://ieeexplore.ieee.org/document/8673071
+  community_link: https://join.slack.com/t/vam-hri/shared_invite/zt-gjq1jtld-PzxfFywTi0qBF6CUX5julw
+  info_tile: true
+  info_text: Learn more about the VAM-HRI Workshop Series at HRI 2018-present
+  info_link:
+  - link: https://ojs.aaai.org//index.php/aimagazine/article/view/2822
+    text: How it started
+  - link: https://vam-hri.github.io/
+    text: How it's going
+default_view: Taxonomy
+min_year: 1984
+views:
+- name: Taxonomy
+  disabled: false
+  default_tab: Taxonomy
+  tabs:
+  - tab_name: Taxonomy
+    title_text: Taxonomy View of VAM-HRI Interation Design Elements
+    disabled: false
+    fancy_chart: false
+    input_file:
+      filename: "VAM-HRI VDE Taxonomy Master List.xlsx"
+      active_worksheet: Master List
+    papers_list:
+      key_map:
+        title: 2
+        abstract: 4
+        authors: 1
+        venue: 3
+        sessions:
+        year: 0
+        keywords:
+        link: 5
+      rows:
+        start: 5
+        stop: 179
+    taxonomy:
+      rows:
+        start: 1
+        stop: 4
+      columns:
+        start: 8
+        stop: 46
+  - tab_name: Command Sequencing
+    title_text: VAM 3D Command Sequencing Paradigm
+    disabled: false
+    fancy_chart: true
+    input_file:
+      filename: "VAM-HRI VDE Taxonomy Master List.xlsx"
+      active_worksheet: Master List
+    papers_list:
+      key_map:
+        title: 2
+        abstract: 4
+        authors: 1
+        venue: 3
+        sessions:
+        year: 0
+        keywords:
+        link: 5
+      rows:
+        start: 5
+        stop: 179
+    taxonomy:
+      rows:
+        start: 1
+        stop: 4
+        exclude:
+          - 2
+          - 3
+      columns:
+        start: 47
+        stop: 50
+  - tab_name: Teleoperation
+    title_text: HMD-Mediated Remote Robot Teleoperation Interface Paradigm
+    disabled: false
+    fancy_chart: true
+    input_file:
+      filename: "VAM-HRI VDE Taxonomy Master List.xlsx"
+      active_worksheet: Master List
+    papers_list:
+      key_map:
+        title: 2
+        abstract: 4
+        authors: 1
+        venue: 3
+        sessions:
+        year: 0
+        keywords:
+        link: 5
+      rows:
+        start: 5
+        stop: 179
+    taxonomy:
+      rows:
+        start: 1
+        stop: 4
+        exclude:
+          - 2
+          - 3
+      columns:
+        start: 51
+        stop: 54
+- name: Affinity
+  disabled: false
+  scaleX: 35
+  scaleY: 15
+- name: Network
+  match_threshold: 0.25
+  disabled: false
